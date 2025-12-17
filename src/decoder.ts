@@ -1,6 +1,11 @@
 import HeaderTypes from './header-types.js';
 import maskColor from './mask-color.js';
-import { BmpCompression, BmpColor, BmpDecoderOptions, BmpImage } from './types.js';
+import {
+  BmpCompression,
+  BmpColor,
+  BmpDecoderOptions,
+  BmpImage,
+} from './types.js';
 
 type IColorProcessor = (x: number, line: number) => void | false;
 
@@ -46,7 +51,10 @@ export default class BmpDecoder implements BmpImage {
   private shiftBlue!: (x: number) => number;
   private shiftAlpha!: (x: number) => number;
 
-  constructor(buffer: Buffer, { toRGBA }: BmpDecoderOptions = { toRGBA: false }) {
+  constructor(
+    buffer: Buffer,
+    { toRGBA }: BmpDecoderOptions = { toRGBA: false },
+  ) {
     this.buffer = buffer;
     this.toRGBA = !!toRGBA;
     this.pos = 0;
@@ -87,7 +95,7 @@ export default class BmpDecoder implements BmpImage {
     this.height = this.readUInt32LE();
     // negative value are possible here => implies bottom down
     this.height =
-    this.height > 0x7fffffff ? this.height - 0x100000000 : this.height;
+      this.height > 0x7fffffff ? this.height - 0x100000000 : this.height;
 
     this.planes = this.buffer.readUInt16LE(this.pos);
     this.pos += 2;
@@ -234,7 +242,7 @@ export default class BmpDecoder implements BmpImage {
         if (x * 8 + i < this.width) {
           const rgb = this.palette[(b >> (7 - i)) & 0x1];
 
-          this.data[location + i * this.locAlpha] = 0;
+          this.data[location + i * this.locAlpha] = 0xff;
           this.data[location + i * 4 + this.locBlue] = rgb.blue;
           this.data[location + i * 4 + this.locGreen] = rgb.green;
           this.data[location + i * 4 + this.locRed] = rgb.red;
@@ -323,10 +331,10 @@ export default class BmpDecoder implements BmpImage {
         const first4 = b >> 4;
         let rgb = this.palette[first4];
 
-        this.data[location] = 0;
-        this.data[location + 1] = rgb.blue;
-        this.data[location + 2] = rgb.green;
-        this.data[location + 3] = rgb.red;
+        this.data[location + this.locAlpha] = 0xff;
+        this.data[location + this.locBlue] = rgb.blue;
+        this.data[location + this.locGreen] = rgb.green;
+        this.data[location + this.locRed] = rgb.red;
 
         if (x * 2 + 1 >= this.width) {
           // throw new Error('Something');
@@ -336,10 +344,10 @@ export default class BmpDecoder implements BmpImage {
         const last4 = b & 0x0f;
         rgb = this.palette[last4];
 
-        this.data[location + 4] = 0;
-        this.data[location + 4 + 1] = rgb.blue;
-        this.data[location + 4 + 2] = rgb.green;
-        this.data[location + 4 + 3] = rgb.red;
+        this.data[location + 4 + this.locAlpha] = 0xff;
+        this.data[location + 4 + this.locBlue] = rgb.blue;
+        this.data[location + 4 + this.locGreen] = rgb.green;
+        this.data[location + 4 + this.locRed] = rgb.red;
       });
     }
   }
@@ -406,15 +414,15 @@ export default class BmpDecoder implements BmpImage {
         if (b < this.palette.length) {
           const rgb = this.palette[b];
 
-          this.data[location] = 0;
-          this.data[location + 1] = rgb.blue;
-          this.data[location + 2] = rgb.green;
-          this.data[location + 3] = rgb.red;
+          this.data[location + this.locAlpha] = 0xff;
+          this.data[location + this.locBlue] = rgb.blue;
+          this.data[location + this.locGreen] = rgb.green;
+          this.data[location + this.locRed] = rgb.red;
         } else {
-          this.data[location] = 0;
-          this.data[location + 1] = 0xff;
-          this.data[location + 2] = 0xff;
-          this.data[location + 3] = 0xff;
+          this.data[location + this.locAlpha] = 0;
+          this.data[location + this.locBlue] = 0xff;
+          this.data[location + this.locGreen] = 0xff;
+          this.data[location + this.locRed] = 0xff;
         }
       });
     }
@@ -447,7 +455,7 @@ export default class BmpDecoder implements BmpImage {
       this.data[loc + this.locRed] = red;
       this.data[loc + this.locGreen] = green;
       this.data[loc + this.locBlue] = blue;
-      this.data[loc + this.locAlpha] = 0;
+      this.data[loc + this.locAlpha] = 0xff;
     });
   }
 
@@ -492,7 +500,7 @@ export default class BmpDecoder implements BmpImage {
   private setPixelData(location: number, rgbIndex: number) {
     const { blue, green, red } = this.palette[rgbIndex];
 
-    this.data[location + this.locAlpha] = 0;
+    this.data[location + this.locAlpha] = 0xff;
     this.data[location + 1 + this.locBlue] = blue;
     this.data[location + 2 + this.locGreen] = green;
     this.data[location + 3 + this.locRed] = red;
